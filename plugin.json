@@ -1,0 +1,12 @@
+{
+    "id": "friendsofbotble/payfast",
+    "name": "Payfast Payment Gateway",
+    "namespace": "FriendsOfBotble\\Payfast\\",
+    "provider": "FriendsOfBotble\\Payfast\\Providers\\PayfastServiceProvider",
+    "author": "Friends of Botble",
+    "url": "https://friendsofbotble.com",
+    "version": "1.0.0",
+    "description": "Payfast payment gateway integration",
+    "minimum_core_version": "7.0.0",
+    "require": ["botble/ecommerce", "botble/payment"]
+}
