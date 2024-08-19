@@ -2,9 +2,11 @@
 
 namespace FriendsOfBotble\Payfast\Providers;
 
+use Botble\Payment\Facades\PaymentMethods;
 use FriendsOfBotble\Payfast\Contracts\Payfast as PayfastServiceContract;
 use FriendsOfBotble\Payfast\Services\PayfastPaymentService;
-use Botble\Ecommerce\Models\Currency;
+use Botble\Ecommerce\Models\Currency as CurrencyEcommerce;
+use Botble\JobBoard\Models\Currency as CurrencyJobBoard;
 use Botble\Payment\Enums\PaymentMethodEnum;
 use Botble\Payment\Supports\PaymentHelper;
 use Collective\Html\HtmlFacade as Html;
@@ -12,7 +14,6 @@ use Exception;
 use Illuminate\Http\Request;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Support\Str;
-use PaymentMethods;
 
 class HookServiceProvider extends ServiceProvider
 {
@@ -64,7 +65,7 @@ class HookServiceProvider extends ServiceProvider
             if (get_payment_setting('status', PayfastServiceProvider::MODULE_NAME)) {
                 $supportedCurrencies = $this->app->make(PayfastPaymentService::class)->getSupportedCurrencies();
                 $currencies = get_all_currencies()
-                    ->filter(fn (Currency $currency) => in_array($currency->title, $supportedCurrencies));
+                    ->filter(fn ($currency) => in_array($currency->title, $supportedCurrencies));
 
                 PaymentMethods::method(PayfastServiceProvider::MODULE_NAME, [
                     'html' => view(
@@ -99,7 +100,8 @@ class HookServiceProvider extends ServiceProvider
             $paymentData = apply_filters(PAYMENT_FILTER_PAYMENT_DATA, [], $request);
 
             if (strtoupper($currentCurrency->title) !== 'ZAR') {
-                $supportedCurrency = Currency::query()->where('title', 'ZAR')->first();
+                $currency = is_plugin_active('ecommerce') ? CurrencyEcommerce::class : CurrencyJobBoard::class;
+                $supportedCurrency = $currency::query()->where('title', 'ZAR')->first();
 
                 if ($supportedCurrency) {
                     $paymentData['currency'] = strtoupper($supportedCurrency->title);
@@ -130,8 +132,14 @@ class HookServiceProvider extends ServiceProvider
                 $payfast = $this->app->make(PayfastServiceContract::class);
                 $chargeId = $payfast->transactionId();
 
+                $returnUrl = PaymentHelper::getRedirectURL($paymentData['checkout_token']);
+
+                if (is_plugin_active('job-board')) {
+                    $returnUrl = $returnUrl . '?charge_id=' . $chargeId;
+                }
+
                 $payfast->renderCheckoutForm([
-                    'return_url' => PaymentHelper::getRedirectURL($paymentData['checkout_token']),
+                    'return_url' => $returnUrl,
                     'notify_url' => route('payment.payfast.webhook'),
                     'name_first' => Str::of($paymentData['address']['name'])->before(' ')->toString(),
                     'name_last' => Str::of($paymentData['address']['name'])->after(' ')->toString(),
