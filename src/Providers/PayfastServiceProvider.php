@@ -21,6 +21,10 @@ class PayfastServiceProvider extends ServiceProvider
             return;
         }
 
+        if (! is_plugin_active('ecommerce') && ! is_plugin_active('job-board') && ! is_plugin_active('real-estate')) {
+            return;
+        }
+
         $this->app->singleton(
             PayfastContract::class,
             fn (Application $app) => new Payfast(
