@@ -2,11 +2,15 @@
 
 namespace FriendsOfBotble\Payfast\Providers;
 
+use Botble\Hotel\Models\Booking;
 use Botble\Payment\Facades\PaymentMethods;
+use Botble\Payment\Models\Payment;
 use FriendsOfBotble\Payfast\Contracts\Payfast as PayfastServiceContract;
 use FriendsOfBotble\Payfast\Services\PayfastPaymentService;
 use Botble\Ecommerce\Models\Currency as CurrencyEcommerce;
 use Botble\JobBoard\Models\Currency as CurrencyJobBoard;
+use Botble\RealEstate\Models\Currency as CurrencyRealEstate;
+use Botble\Hotel\Models\Currency as CurrencyHotel;
 use Botble\Payment\Enums\PaymentMethodEnum;
 use Botble\Payment\Supports\PaymentHelper;
 use Collective\Html\HtmlFacade as Html;
@@ -90,7 +94,7 @@ class HookServiceProvider extends ServiceProvider
             return $data;
         }, 20, 2);
 
-        add_filter(PAYMENT_FILTER_AFTER_POST_CHECKOUT, function (array $data, Request $request): array {
+        add_filter(PAYMENT_FILTER_AFTER_POST_CHECKOUT, callback: function (array $data, Request $request): array {
             if ($data['type'] !== PayfastServiceProvider::MODULE_NAME) {
                 return $data;
             }
@@ -100,7 +104,14 @@ class HookServiceProvider extends ServiceProvider
             $paymentData = apply_filters(PAYMENT_FILTER_PAYMENT_DATA, [], $request);
 
             if (strtoupper($currentCurrency->title) !== 'ZAR') {
-                $currency = is_plugin_active('ecommerce') ? CurrencyEcommerce::class : CurrencyJobBoard::class;
+                $currency = match (true) {
+                    is_plugin_active('ecommerce') => CurrencyEcommerce::class,
+                    is_plugin_active('job-board') => CurrencyJobBoard::class,
+                    is_plugin_active('real-estate') => CurrencyRealEstate::class,
+                    is_plugin_active('hotel') => CurrencyHotel::class,
+                    default => null,
+                };
+
                 $supportedCurrency = $currency::query()->where('title', 'ZAR')->first();
 
                 if ($supportedCurrency) {
@@ -138,6 +149,17 @@ class HookServiceProvider extends ServiceProvider
                     $returnUrl = $returnUrl . '?charge_id=' . $chargeId;
                 }
 
+                if (is_plugin_active('hotel')) {
+                    $payment = Payment::query()->select('order_id')->where('charge_id', $chargeId)->first();
+                    if ($payment) {
+                        $order = Booking::query()->find($payment->order_id);
+
+                        if ($order) {
+                            $returnUrl = PaymentHelper::getRedirectURL($order->transaction_id);
+                        }
+                    }
+                }
+
                 $payfast->renderCheckoutForm([
                     'return_url' => $returnUrl,
                     'notify_url' => route('payment.payfast.webhook'),
@@ -160,6 +182,6 @@ class HookServiceProvider extends ServiceProvider
             }
 
             return $data;
-        }, 999, 2);
+        }, priority: 999, arguments: 2);
     }
 }

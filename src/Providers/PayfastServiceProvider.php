@@ -21,7 +21,12 @@ class PayfastServiceProvider extends ServiceProvider
             return;
         }
 
-        if (! is_plugin_active('ecommerce') && ! is_plugin_active('job-board') && ! is_plugin_active('real-estate')) {
+        if (
+            ! is_plugin_active('ecommerce') &&
+            ! is_plugin_active('job-board') &&
+            ! is_plugin_active('real-estate') &&
+            ! is_plugin_active('hotel')
+        ) {
             return;
         }
 
@@ -43,7 +48,12 @@ class PayfastServiceProvider extends ServiceProvider
             return;
         }
 
-        if (! is_plugin_active('ecommerce') && ! is_plugin_active('job-board')) {
+        if (
+            ! is_plugin_active('ecommerce') &&
+            ! is_plugin_active('job-board') &&
+            ! is_plugin_active('real-estate') &&
+            ! is_plugin_active('hotel')
+        ) {
             return;
         }
 
