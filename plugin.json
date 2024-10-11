@@ -1,5 +1,5 @@
 {
-    "id": "friendsofbotble/payfast",
+    "id": "friendsofbotble/fob-payfast",
     "name": "Payfast Payment Gateway",
     "namespace": "FriendsOfBotble\\Payfast\\",
     "provider": "FriendsOfBotble\\Payfast\\Providers\\PayfastServiceProvider",
